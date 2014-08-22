@@ -1,0 +1,651 @@
+Go For Perl Mongers
+(or, for Lightweight Language lovers)
+Tags: go, perl, ruby, python, php
+
+Daisuke Maki
+Engineer, LINE Corporation
+lestrrat+nospam@gmail.com
+https://github.com/lestrrat
+@lestrrat
+
+* Who Is This Guy?
+
+- @lestrrat
+- LINE / Japan Perl Association / YAPC::Asia (2008~2013)
+- STF / peco *(new!)*
+
+.image foo.jpg
+
+* 俺とGo
+
+- Goしてみて約1年弱
+- 概算10~12万行くらい書いた。lived○○rBl○g の裏方にもこっそりgo入れてる
+- 最初の4万行くらいまでに *goの落とし穴にほぼ全て落ちた* 自信がある
+- 今日はその落とし穴から学んだ諸々の話
+
+* 対象観客層
+
+- もともとPerl/Python/Ruby/PHPあたりから来た人
+- Goは最低限とりあえずかじった程度はやった人
+- かじってみたけど「Go、便利そうだけどなんか微妙だな…」って思ってる人
+
+- goバリバリできるって人は腹筋でもしててください
+
+* 今日言いたいこと
+
+.image point.jpg
+
+* 0. いつでも乱入してこいや
+
+- 自分が躓いた箇所の話です。すごい新製品・新機能の話は一切ありません。
+- 泥臭い話です
+- 色々話が飛びます
+- なのでいつでも質問して！
+- 残念ながら時間があまりないので、あとで廊下とかで続きをやります！
+
+* 1. 僕はGo=LLっぽいCだと思ってる
+
+GoはCに近いレベルの性能を備えつつ、構文やツールの特性によってLLっぽい気軽さでコードを書ける
+
+* 2. でもLLのノリで使おうとするとGoを使いこなせないと思うし、Goを嫌いになると思う
+
+QiitaのGoタグとか見てても「この人達多分数ヶ月後には『Go使えない』って言ってそう」な雰囲気を感じる。
+
+* 3. Goは静的型付けのコンパイル言語です。PerlでもRubyでもPythonでもないです。
+
+*API・構造体の設計* 、 *並行処理の考え方* 等、違うメンタリティを必要とします。
+
+.image culture.png
+
+* それでは本題
+
+* アジェンダ
+
+- 1. みんな必ずはまるポイント達
+- 2. はまるポイントにはまらないための知恵
+- 2.1 例外
+- 2.2 構造体
+- 2.3 チャンネル
+- 2.4 その他細かい話
+
+* みんな必ずはまるポイント達
+
+.image hole-here.jpg
+
+* Goに例外なんて存在しない
+
+- 厳密には…ある…が、
+- panic()とrecover()を見て色めき立ってはいけない
+- try/catch的な動作とは *全く* 異なる
+- *エラー使え*
+
+* オブジェクトなんてない。
+
+ここではオブジェクト=継承を使って拡張を行うモデリングの構造体の事を指してます
+
+- どんなにオブジェクトっぽく見えても、それはオブジェクトじゃない！
+
+    type Foo {}
+    func (f Foo) DoFoo() { ... }
+
+    type Bar { Foo }
+
+    Bar.DoFoo() // できるけど、あなたの思ってるものと違う！
+
+- *オブジェクト指向なんて忘れちまえ！*
+
+* GoroutineはPOSIX スレッドではない
+
+- スレッドをcreateしてjoin、という考え方では早晩、壁にぶち当たる
+- Goroutineはお馬鹿さんのように量産してよい
+- しかし *お馬鹿さんのようなコードを書いてはいけない*
+- デッドロック・ライフサイクルの *明示的な制御が必要*
+- さらに非同期プログラミングの経験があると良いかも
+
+
+* はまるポイントにはまらないための知識
+
+* 1. 例外とエラー
+
+* 例外なんて存在しない
+
+- Goでは例外は使わない。
+
+* 「でもpanic()とrecover()ってあるじゃん」
+
+- 使わないったら使わない。諦めてください。
+- 自分もこれで「俺のPerlコードそのままポートできるやん！」って思った
+- けど、これで5,000 ~ 10,000行くらい無駄に書いたと思う
+
+- go的にはpanicが起こったらランタイムがどういう状態にあるのか保証できない
+
+* エラーを返し、必ず確認する
+
+- はやめにエラー処理をして、はやめにreturn/continue/breakとかするとよい
+
+.code handling-errors.go /START SIMPLE ERROR SAMPLE OMIT/,/END SIMPLE ERROR SAMPLE OMIT/
+
+
+* 複数の戻り値でerrorを返す
+
+- 戻り値を返す場合は、複数戻り値を使える事を利用する
+- 本来の値とエラーを戻り値として返す
+
+.code handling-errors.go /START STRCONV SAMPLE OMIT/,/END STRCONV SAMPLE OMIT/
+
+* 戻り値のエラーは毎回確認
+
+- 同じようなコードを書かないといけないのが辛いというのは良く聞く
+- でもこれは言語レベルでサポートしてる *視覚的なマーカー* だと思うとあまり苦にならない
+
+.code handling-errors.go /START CHECK ERROR SAMPLE OMIT/,/END CHECK ERROR SAMPLE OMIT/
+
+* panic()の使い方
+
+- panic()は 「 *この条件を満たしていないとコードが実行できない* 」時に使う
+- 例えば特定のファイルがないと動作できない場合
+
+.code panic-recover.go /^func init/,/^}/
+
+* recover()の使い方
+
+- ぶっちゃけ… あんまり使わない…
+- 自分は時々goroutineをpanicがあったとしても殺したくない場合に使う（panicになるのがわかってるけど、channelを強制クローズしたい時がたまにある）
+- 結論：本当に使う必要が出てくるまで使うな
+
+.code panic-recover.go /^func recoverGoroutine/,/^}/
+
+* fmt.Errorf()
+
+- 一番手軽に使えるのは `fmt.Errorf()`
+- ほとんどの場合はこれでOK
+- errorもいいけど、fmtはほぼ必ず使うので…
+
+.code handling-errors.go /^func usingErrorf/,/^}/
+
+- 小ネタ：エラーは小文字でスタート！golintに怒られる
+
+* まとめ
+
+- これまでの言語で培ってきた例外の使用テクニックは忘れましょう
+- 面倒くさく見えるかもしれませんが、errorを戻り値に入れて毎回チェックしましょう
+- 個人的には例外はないならないですっきりするのでこれでいいと思う
+- deferとの絡みがあるので無理して多言語の例外を真似すると辛い事になる
+- エラー処理は「急がば回れ」
+
+* 2. Goで構造体設計
+
+* 基本はCのようなstruct
+
+   type Foo struct {
+       A string
+       B int
+       c []int
+   }
+
+* オブジェクト指向はない！
+
+- レシーバーとメソッドはある
+- 型階層・継承はない
+- つまりオブジェクトっぽい構文はあるが、一番の肝の *モデリングの仕方が全く違う*
+- 下手にオブジェクト指向ができるなんて思わないほうが救われる
+
+.link http://golang.org/doc/faq#Is_Go_an_object-oriented_language
+
+*  合成／埋め込み
+
+- 通常の構造体メンバはいわゆる通常の明示的なアクセスになる
+
+.code struct-field.go /START CODE OMIT/,/END CODE OMIT/
+
+* 合成／埋め込み
+
+- 無名で埋め込めば自動的に委譲が行われる
+
+.code struct-anon-field.go /START CODE OMIT/,/END CODE OMIT/
+
+- あたかも *Foo* *isa* *Bar* …！
+
+* 「継承っぽいことができる」にだまされないように
+
+.play object-oriented.go /START NOINHERITANCE OMIT/,/END NOINHERITANCE OMIT/
+
+- 僕はこれで3週間くらい無駄にしました
+
+* 継承ではなく委譲
+
+- 構文的に継承しているように見せているだけで、ただの委譲です
+- 継承はできないって言ったらできません！
+
+.code object-oriented.go /START DELEGATION OMIT/,/END DELEGATION OMIT/
+
+* だけどそうするとコードの再利用が…？
+
+- そのためにgoにはこの二つの仕様がある：
+- 埋め込み／合成
+- interface
+
+* 考え方を変える(1) - 継承せずに小さな部品で合成する
+
+- 親クラスからまるっと特性をもらうのはできない
+- 再利用可能な部品を内包して、それを使って合成する
+
+.image inheritance-composition.jpg
+
+* まず埋め込まれる部品を作る
+
+- ステート型
+- 実体はただのint
+
+.code state.go /START PAGE1 OMIT/,/END PAGE1 OMIT/
+
+* 合成+委譲
+
+- あとで出力した時にわかりやすいように `State.String()` を実装
+
+.code state.go /START PAGE2 OMIT/,/END PAGE2 OMIT/
+
+* ここで合成
+
+.code state.go /START PAGE3 OMIT/,/END PAGE3 OMIT/
+
+- ポイント：同じState構造体をtype Bar, Baz, Quux等、他の型にも埋め込める
+- `SetState()` `GetState()` は一回の宣言で済む
+
+* 考え方を変える(2) - ラップする
+
+- 合成で一通り特徴を受け継ぐことはできたが、ひとつのメソッドの動作を変えたい
+- 例えばhttp.ClientのGetが呼ばれた時にかかった時間を自動的に取得したい
+
+.code wrap-http-client.go /START GET OMIT/,/END GET OMIT/
+
+- 外側からロジックの追加はできるが、委譲した先のメソッド内部で呼ばれるメソッド内容の変更はできない事に注意
+
+* 考え方を変える(3) - 類似構造体の関係性
+
+- 継承できない＝ツリー階層的なモデリングはできない
+- Java Interfaceや多言語のRole/Traitのようなものしかない、と考えるのが近い
+
+.image inheritance-tree-interface.jpg
+
+* interfaceの定義を満たす
+
+- 親クラスを指定するようなところではinterfaceを定義する
+- 任意のinterfaceの定義を満たすには合成でもラップでも自前で実装でも良い
+
+* 例：共用メソッド
+
+- 親クラスを継承した全ての型に対して有効なメソッドを親の構造体で実装するのは難しい
+- 一旦オブジェクト指向を忘れれば簡単に実装できる
+- 全ての子クラス（というか構造体）が満たしている interfaceを使った関数を作れば良い
+- あとはそれを呼び出すメソッドを定義しても良い
+
+* interfaceの定義
+
+- さきほどのStateを持った構造体を考える
+- 定義するのは実際に必要となるメソッドのみ
+- 明示的な構造体名で指定しない
+- あくまで使用するAPIから考え、interfaceを定義する
+
+.code state.go /START PAGE4 OMIT/,/END PAGE4 OMIT/
+
+- これであればStateを埋め込んである構造体は自動的にこのinterfaceを満たせる
+
+* 共用関数
+
+- オブジェクト指向から考えるとまるっきり逆の考え方なので慣れが必要…
+
+.code state.go /START PAGE5 OMIT/,/END PAGE5 OMIT/
+
+* 「えー、Generics欲しい…」
+
+- 諦めてinterfaceをもう少し理解しましょう
+- 実際かなり使えます
+- Genericsが近いうちに言語に登場する *予定はありません*
+
+* 「えー、それでもGenericsあったほうが…」
+
+* Words of Wisdom
+
+.image akirame.jpg
+
+* まとめ：構造体のモデリングの際のGo的な考え方
+
+- 具体的なオブジェクトの階層を作ろう、という考えをしない（例：「動物」を作ろう！）
+- 逆に考えるべきは *API* ：必要なメソッドはなんなのか？
+- 例えば「草食動物」（Herbibore）ではなく「草を食べる」(GrassEater）というinterfaceを考えてGrassEat()メソッドをそろえる
+- あくまでAPI=できる事ベースで！
+- 埋め込み／合成で部品再利用
+
+* 余談
+
+- go-stf-serverは構造体の定義という意味では全ての罠を踏み抜いたコード
+- 正直ひどいコードなので、実際に運用したい場合は書き直しが必要だと思う
+- しかし、このコードのおかげでやっと正しい考え方がわかった
+- 「慣れ」が必要
+
+* 並行処理
+
+* goには並行処理用の基本ツールが最初から実装されている
+
+- goroutine: イメージはスレッド。実行はgoのランタイム任せでどのスレッドでいつ動作するかは制御できない
+- channel: goroutine間のデータの受け渡し用のパイプ的なもの
+
+* goroutineの特徴
+
+- 任意の関数を（イメージ的に）別スレッドで実行できる
+
+    // 「HTTPポスト、良きタイミングで実行してください」
+    go http.Post(url, url.Values{...})
+
+- クロージャもいけるよ！
+
+    go func() {
+        ...
+    }() // この()を忘れないように
+
+- goroutine作成の負荷はあまり気にせずにぽんぽん作ってよい
+
+* goroutineの特徴
+
+- goroutineがgoランタイムのどのスレッドでいつ実行されるかはわからない
+- 実行される際のイメージは *協調マルチタスキング型の非同期ライブラリに近い*
+- が、リソースをシェアしつつも *同時実行がありえる* のが違う
+- fork/pthreadのように回収する必要はないが、同期は手動で行う必要がある（重要）
+
+* POSIX的なスレッド・プロセスモデルを一旦忘れよう
+
+- goroutineはPOSIX的なモデルではない
+- これまでの惰性でマルチプロセス・スレッドプログラミングすると破綻
+
+* POSIXスレッドモデルとの違い（ざっくり）
+
+- goroutineのIDは取れない（どこからも）
+- goroutineは外部から停止できない (kill pid/tidができない）
+- goroutineそのものの終了を知る事・待つことはできない（waitpid/thread->join等はない）
+
+* 明示的にデータのやりとりをして同期しろッ！
+
+* goroutineの同期
+
+- 簡単なgoroutine例
+- これでは動かない
+
+    func main() {
+        go func() {
+            time.Sleep(5 * time.Second)
+            fmt.Println("Goroutine fired!")
+        }()
+    }
+
+- main() が終了するのにgoroutineの終了を待たない 
+
+* goroutineの同期
+
+- チャンネルにお知らせが来るのを待つ
+
+.play wait-goroutine.go /START CODE OMIT/,/END CODE OMIT/
+
+* goroutineの同期は重要
+
+- メイン関数が終了する前にgoroutineに指定された関数が `return` する（通常終了）
+- メイン関数が終了する時にランタイムが強制的に停止させる( *途中で* 停止）←重要
+- 強制終了だと重要な関数が走らなかったりする
+
+* FAIL: deferが動かない
+
+.play defer-failure-goroutine.go /START CODE OMIT/,/END CODE OMIT/
+
+- `defer` は *関数終了時に発動する* ので、途中停止では発動しない！
+
+* 直す
+
+.play defer-success-goroutine.go /START CODE OMIT/,/END CODE OMIT/
+
+* goroutineの同期重要！
+
+* ループするgoroutineを停止する
+
+- 外部からkillできない問題
+- 以下の例ではgoroutineの外からループを止める方法がない
+
+    func main() {
+        done := make(chan struct{})
+        go doLoop(done)
+        <-done
+    }
+
+    func doLoop(chan struct{}) {
+        defer func() { done<-struct{}{} }()
+        for {
+            ...
+        }
+    }
+
+* キレイにgoroutineを止めたい
+
+- プロセス／スレッドなら外からkill/stopできるが、goroutineでは無理
+- `defer` の事を考えるときれいにgoroutineを止めないといけない
+- シグナルを受け取った時も正しくgoroutineのループを止めたい
+
+*  停止条件を伝えるチャンネルを渡す
+
+- `quit` が読み込み可能になったらそこで終了
+- 注： select{}で代用もできます
+
+.code signal-control-loop.go /START LOOPFUNC OMIT/,/END LOOPFUNC OMIT/
+
+* シグナルが来たらquitにお知らせを送る
+
+.code signal-control-loop.go /START MAIN OMIT/,/END MAIN OMIT/
+
+- これできれいに同期して終了できる
+
+* 代替案
+
+- チャンネルの読み込みは読み込む物が来るか、 *チャンネルが閉じた時* ブロックが解ける
+- 複数のgoroutineに1度の操作で条件を知らせたい場合便利
+
+.code signal-control-loop.go /START CLOSE SAMPLE OMIT/,/END CLOSE SAMPLE OMIT/
+
+* デッドロック
+
+- チャンネルには *バッファが* ある
+- バッファを超える書き込みはブロックする
+
+    ch := make(chan int, 10)
+    for i := 0; i < 20; i++ {
+        ch <- i // このままだと11個目がブロック
+    }
+	
+- 読み込みをちゃんとしないと、ちゃんと動いているように見えてもいつかデッドロック…
+
+* 実際にやった恥ずかしいデッドロック：
+
+.code silly-deadlock.go /START DEADLOCK LOOP OMIT/,/END DEADLOCK LOOP OMIT/
+
+- 同じgoroutine内で読み・書きをすると…
+- バッファを大きくすればとりあえず動くけどそういう問題じゃない
+- いつeventChに書き込みすぎてデッドロックになるか…
+
+* 特定のチャンネルの読み／書きは別goroutineが安全
+
+- 同じgoroutineで双方向のチャンネルコミュニケーションがあるものは設計が…
+- 任意のチャンネルについては「読み込み」専用と「書き込み」専用のgoroutineがおすすめ
+
+- チャンネルの使いかたをあまり独創的に工夫するのはトラブルの元なのでシンプルにしよう
+
+* さっきのようなコードを書いてしまって、とりあえずそこだけ直したい場合
+
+- これは手っ取り早いけど、本当はやらないほうがいいです
+- ポイントはブロックしたとしてもgoroutineがブロックするだけなので、安全に読み込みのほうにいけること
+
+.code silly-deadlock.go /START DEADLOCK WORKAROUND OMIT/,/END DEADLOCK WORKAROUND OMIT/
+
+* 同期とロック
+
+- チャンネルのブロックをする機能を使って同期を取ることができる
+- が、ロック用の sync パッケージもある(Mutexとか）
+- 便利な関数も結構ある
+
+* チャンネル？sync.Mutex？
+
+- どこでMutexかチャンネルか選ぶ？
+- 公式？見解：「どっちでもいいからもっともキレイに書けるほうを使いな」
+.link https://code.google.com/p/go-wiki/wiki/MutexOrChannel
+
+- 自分はチャンネルのほうを多く使ってる
+- pecoのhub.goなども同期メッセージのやり取りの形としては面白いと思いますので是非どうぞ
+
+* まとめ
+
+- 並行・並列処理は落とし穴だらけ
+- *大部分の人類には難しすぎる*
+- *goだから簡単にできる* は嘘
+-「すでに解くべき問題をよく理解している人には」という前提が付く
+- 今回の話がよくわかってない人はちゃんと勉強してから挑戦すべき
+
+* 細かい落とし穴の話
+
+* Goのフォーマッティングに合わせる
+
+* Goのフォーマッティングに合わせる
+
+- gofmt, golint とかコード整形ツールがある
+- これを使った方が良い
+- …ではなく、使う。使う以外のチョイスは無い
+- ハードタブも慣れる
+
+.link https://github.com/stf-storage/go-stf-server/commit/8f6041ba6db67914925f8092cb06854b83465547
+
+* interfaceの戻り値がnilなのにnilじゃない話
+
+* interfaceの戻り値がnilなのにnilじゃない話
+
+- interface型の戻り値でnilが返せない時があってはまる
+
+.code interface-nil.go /START SETUP OMIT/,/END SETUP OMIT/
+
+* interfaceの戻り値がnilなのにnilじゃない話
+
+.play interface-nil.go /START MAIN OMIT/,/END MAIN OMIT/
+
+- 「え？なに？意味が…」
+- interfaceがnil判定されるには「型」と「値」 *両方ともnilである* 必要がある
+- 素直に `return` `nil` してください
+
+* os.Exit() and log.Fatalf() are evil
+
+* os.Exit() and log.Fatalf() are evil
+
+- Evilなのはdeferを使わないとおかしくなる時の話。
+- os.Exit()すると途中停止するので仕込んでおいたdeferが動かない
+- log.Fatalfも実はlog.Printf + os.Exitなので同様
+
+* 教訓
+
+- 安易にos.Exit / log.Fatalfしてはいけない
+
+* packageの話
+
+* packageの粒度
+
+- LL の人、特にきにせずにバンバンモジュールをインポートする
+- ただ、goのpackageはLLのモジュールではない
+- LLののりでやると"circular dependency..."でコンパイルできない
+
+* goのpackageとはなにか
+
+- ファイル群のグルーピング
+- 「機能ごとのモジュラリゼーション」で厳密に考えると悲しい事になる
+
+* なぜ悲しい事になるのか
+
+- 機能単位でわけると、共通パーツが必要になったところでほぼ確実に循環依存が発生する
+- 循環依存をなくしつつそれをやる方法はないわけではないが（import専用共通パッケージを作る）それをするコストに正直見合わない
+
+* 個人的ルール: 単体で存在できない限り、全部同じパッケージ
+
+- それだけ。Foo::Handler::HogeみたいにHandler階層を切っていた物はfoo.HogeHandlerに変更
+- 気持ち悪くないよ！
+- それを嫌がって階層わける人もいるが、なんでわざわざ言語と喧嘩したいのか…
+
+* 「単体で存在できる」例
+
+- pecoではキーシーケンスをマッチするのに `https://github.com/koron/gelatin` をパクった
+- キーをstringからtermbox.Keyのシーケンスに変えた以外はほぼそのまま
+- pecoと切り離しても使おうと思えば使える。
+- だから階層をわけた
+
+.image peco-keyseq-package.png
+
+* 他人の書いたコード
+
+* 外部ライブラリのバンドル
+
+- バンドルにはgodep程度で基本困ってない
+- ここではそういう話ではなくて…
+- バンドルしたコードがアレだった場合
+
+* goのコードのくせして、チャンネルを使わずにブロックする関数書いてるヤツ
+
+- 困る
+
+    // ここでブロック…
+    ret := PotentiallyBlockingOperation()
+
+- 途中停止したい場合にも困るし、他のことができない
+
+* チャンネル使え
+
+- goだから戻り値を得るのに時間がかかる場合は戻り値を返すチャンネルを返すべき
+- そうすれば、selectを使って戻り値待っている間に他の事ができる
+
+    ch := PotentiallyBlockingOperation()
+    LOOP: for {
+        select {
+        case <-ch: // 戻り値を得た！
+            ...
+            break LOOP
+        default:
+            // まだ来てないから他の事やろう
+        }
+    }
+
+* でも他人の書いてるコードだから…
+
+- 自分で変えるわけにはいかない
+- そんな時でも助けてくれるのがgo
+
+* Just goroutine it
+
+    ch := make(chan Hoge)
+    go func () {
+       ch <- PotentiallyBlockingOperation()
+    }()
+
+    LOOP: for {
+        select {
+        case <-ch:
+           ....
+           break LOOP
+        default:
+           ....
+       }
+    }
+
+- これ、実際にいろんなところで使えます
+- 他人のコードでなくても、自分でブロックする処理をどうにかしたい場合など
+
+.link https://github.com/peco/peco/blob/master/input.go#L24-L38
+
+
+
+* こちらからは以上です
+
+* まとめ
+
+- goを書くときには考え方を変える必要がある
+- 意固地にならないでWhen In Go, Do As Gophers Do (c) http://rebuild.fm/42/
+
+* Questions?
