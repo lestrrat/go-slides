@@ -1,0 +1,66 @@
+Lessons learned writing "peco"
+Tags: go, peco
+
+Daisuke Maki
+Engineer, LINE Corporation
+lestrrat+nospam@gmail.com
+https://github.com/lestrrat
+@lestrrat
+
+* Who Is This Guy?
+
+- @lestrrat
+- LINE / Japan Perl Association / YAPC::Asia (2008~2013)
+- STF / peco *(new!)*
+
+.image foo.jpg
+
+* Background
+
+- Perl/C guy for last 16 yrs
+- Picked up Go about a year ago
+
+* Look Ma! I'm (now) more Gopher than you!
+
+.image osrc.png
+
+* peco?
+
+- " *Interactive* *Command* *Line* *Filtering* *Tool* "
+- You are going "WTF?"
+
+* Take A Look
+
+.image peco-demo-multiple-queries.gif
+
+* Lesson 0: Marketing is King
+
+- Yes. This has nothing to do with go.
+- But it's important
+- Especially because I'm ripping percol
+
+* Lesson 1: Synchronization Is Hard
+
+* Status Message
+
+- Request to print a message
+- Request to clear a message
+
+* Lesson 2: Testing Is Important
+
+- Needed to create interfaces to inject
+- But DO NOT over engineer
+
+* Lesson 3: Go Is Not Perl/Ruby/Python/Node
+
+- I'm shipping a binary
+- I don't need super-flexible-you-can-do-anything libraries
+- Sometimes it's okay to simply dump a copy of a project, and tweak to your needs (e.g. Aho-Corasick sequence matcher in keyseq/)
+
+* Lesson 4: Cross-compilation is hard
+
+- os/user silently fails.
+- cgo :/
+- you just need to know these things
+
+* Lesson 5: TBD
