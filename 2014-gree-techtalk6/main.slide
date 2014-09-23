@@ -1,4 +1,4 @@
-Lessons learned writing "peco"
+Lessons Learned While Writing "peco"
 Tags: go, peco
 
 Daisuke Maki
@@ -15,6 +15,12 @@ https://github.com/lestrrat
 
 .image foo.jpg
 
+* WTF Am I Doing Here
+
+- なんかみんなInfluxDBとか大規模デプロイとか運用とかの話聞きに来てません？
+- 僕これからたかだか5000行弱のGoで書かれたツールの話しますよ？
+- 寝てもいいけどDISらないでね…
+
 * Background
 
 - Perl/C guy for last 16 yrs
@@ -24,43 +30,272 @@ https://github.com/lestrrat
 
 .image osrc.png
 
+Go歴は短いけどがっつりGo書いてます！
+
 * peco?
 
+- 今日は peco開発中にはまったり、考えたりした事をさくっと話します
 - " *Interactive* *Command* *Line* *Filtering* *Tool* "
-- You are going "WTF?"
+- ナニソレ？
 
 * Take A Look
 
 .image peco-demo-multiple-queries.gif
 
+* Demo?
+
+TBD
+
+* I LIKE STARS
+
+.image star-beggar.png 500 _
+
 * Lesson 0: Marketing is King
 
-- Yes. This has nothing to do with go.
-- But it's important
-- Especially because I'm ripping percol
+* No Go Here
+
+- Goとは関係ないですね。
+- でも重要
+- なにせ pecoはpercol (https://github.com/mooz/percol)をパクったので…
+
+* Good README + Animated gifs
+
+.link https://github.com/peco/peco
+
+- ほとんどの人は（最初は）説明なんて読まない。
+- かくいう自分もpercolの説明を最初読んでない（インストールに失敗して諦めた）
+
+* static link binary FTW
+
+- Goなんだからバイナリ作成は簡単
+- git tag vX.Y.Z → git push → werckerでgoxcが動いてWin,Linux,Macバイナリを自動生成
+
+* homebrew 
+
+- homebrew対応、超簡単なのですぐするべき (brew tap)
+
+    brew tap peco/peco
+    brew install peco
+
+- homebrew作成も自動化してある（本当はwercker部分もそうしたいんだけど、うまく動いてない）
+
+    homebrew-peco
+    go run make.go peco 1.2.3
+
+* Lessons Learned:
+
+
+- 簡単にしてあげると++
+- 簡単にわかるようにしてよう！（README）
+- 簡単に使えるようにしよう！(binaries, homebrew)
 
 * Lesson 1: Synchronization Is Hard
 
+* やっぱり同期は難しい
+
+- わかってるつもりでしたり顔のブログ書いててもやっぱりはまる(*blush*)
+
 * Status Message
 
-- Request to print a message
-- Request to clear a message
+- peco上に何が起きてるのかステータスを表示する
+- 1: 文字をステータスバーに表示する
+- 2: 文字をステータスバーから削除する（2パターン：1の後自動的に500ms後か、任意のタイミングで）
 
-* Lesson 2: Testing Is Important
+* 何を思ったか別のチャンネルでそれぞれを受け取る設定にした
 
-- Needed to create interfaces to inject
-- But DO NOT over engineer
+- 同じgoroutineから
+
+    // pseudocode
+    statusCh <- request{ message: "Hello, World!" }
+    clearCh <- request{ after: 500 * time.Millsecond}
+
+* あれ、これって描画と削除がばらばらになるだけじゃ…
+
+- Yes, this is silly.
+
+* TPO
+
+- このようなステータスバーの操作などはリクエストの *順番* が重要
+- 非同期でリクエストを受け取るのではなくキューが必要
+- *全部同じchanでよかったんや！*
+
+* Lessons Learned:
+
+- 気軽にできるからってなんでもかんでも非同期化すると悲しいバグを踏む
+- 基本的に並行作業の同期は人類には難しすぎるつもりでコードを書くとよい、と自分に言い聞かせながらコードを書かないと何回でもやっちまう
+
+* Lesson 2: Testing Is Hard
+
+* You HAVE Tests, Right?
+
+- テスト重要ですよね！
+
+* でもpecoはおもちゃから始まったので…
+
+.image mokushi.gif
+
+* 「ヤバい」と思いつつ2ヶ月
+
+- （どれか忘れた）なにかキーシーケンスまわりでregression
+- やばい、今書かないとやばい！
+
+* CUI まわりのテスト面倒！
+
+- 操作は基本グローバルな関数を扱う
+- 差し込みするのどうするんだ…
+
+* First, observe...
+
+.image termbox.png 500 _
+
+* Interfaces to the Rescue!
+
+- Create "Screen" interface
+
+.code peco_screen.go /START SCREEN OMIT/,/END SCREEN OMIT/ 
+
+* Implement Screen
+
+- "Termbox" satisfies the Screen interface
+
+.code peco_screen.go /START TERMBOX OMIT/,/END TERMBOX OMIT/
+
+* Sneak In A Global!
+
+   var screen Screen = Termbox{}
+
+- Then, s/termbox/screen/g
+
+* Mocking In Test
+
+   type dummyScreen struct { ... }
+   screen = dummyScreen{}
+
+- あ、でもこれ効果がグローバルだ！
+
+* Implement Scope::Guard (sort of)
+
+.code peco_layout_test.go /START SETDUMMYSCREEN OMIT/,/END SETDUMMYSCREEN OMIT/
+.code peco_layout_test.go /START USE DUMMYSCREEN OMIT/,/END USE DUMMYSCREEN OMIT/
+
+* Lesson Learned:
+
+- Mockっぽいものはinterfaceで！
+- 変更の局所化はGuardで！
+
+* One More Thing
+
+- 今回のケースはグローバル関数だったのでこう書いた
+- が、 *interfaceは後付けできる* のがポイント…
+- 多分最初からMockとか考えて書くとGoっぽくないし、over engineering
+
+* Oops
+
+   shoebill% go test -coverprofile=c.out
+   PASS
+   coverage: 33.2% of statements
+   ok  	github.com/peco/peco	0.419s
+   shoebill% 
 
 * Lesson 3: Go Is Not Perl/Ruby/Python/Node
 
-- I'm shipping a binary
-- I don't need super-flexible-you-can-do-anything libraries
-- Sometimes it's okay to simply dump a copy of a project, and tweak to your needs (e.g. Aho-Corasick sequence matcher in keyseq/)
+* Perl時代の私
+
+- 「コア機能以外は全部外部の汎用ライブラリに追い出さないと死ぬ！」
+- 「全部cpanfileにキレイに書いて、どこの環境でもうまいこと動くようにしないと死ぬ！」
+
+* Go時代の私
+
+- 「どうせコンパイル通すからだいたいわかるようになってればいいよ…」
+
+* キーシーケンスの処理
+
+- 色々やってみたけど、FSMを使って登録されたシーケンスと入力シーケンスをマッチさせる必要があった
+
+* Twitterでつぶやいたらすぐ
+
+.image aruyo.jpg
+
+.caption http://kameshika.cocolog-nifty.com/photos/uncategorized/2010/10/25/hero.jpg
+
+* 提供されたライブラリ
+
+- stringをキーとして、Aho-Corasick法を使ってパターン認識する
+- う、でもこっちのキーはtermbox.Key{}だ…
+
+* I'm shipping a binary
+
+- 前提：pecoは単体のツールであり、ライブラリではない
+- どうもPerl/Python/Ruby等をやっていると、汎用ライブラリが欲しくなる
+- pecoはどうせコンパイルするものなので、パクってpeco専用にしてしまうほうが早い
+
+* 伝家の宝刀：CUT AND PASTE
+
+- 別にコードの再利用が駄目という話ではなく、用途等が会えばGoならこういうやりかたもある
+
+* 閑話休題：Godep
+
+- Godep: -copy=false が廃止された
+- 「プロジェクトごとに依存関係のSHA1だけでなく、本体のコピーを持っていろ」
+
+* Nice Gesture Here..
+
+.image switch-godep.png 500 _
+
+* But It Adds _8000_ Lines...
+
+- や、まぁそういう大きさのプロジェクトなら、ありかも…
+- pecoはまだ5000行。ここに8000行の依存とか追加するのは、いやだったので
+
+* Go As A Scripting Language FTW
+
+.image kotowaru.gif
+
+.caption https://github.com/peco/peco/pull/195
+
+* Lessons Learned:
+
+- キレイに依存関係を解決するのも良いが、ツールを配布する場合はコピーしてカスタマイズしたものを埋め込むという手も現実的
+- 解決しないといけない依存関係についてはpecoは自前でビルドプログラム書いた
+
+.link https://github.com/peco/peco/blob/master/build/make.go
+
+   go run make.go deps  // Setup deps
+   go run make.go build // Build binaries via goxc
 
 * Lesson 4: Cross-compilation is hard
 
-- os/user silently fails.
-- cgo :/
-- you just need to know these things
+* Goってクロスコンパイルできるんでしょ？
 
-* Lesson 5: TBD
+- 俺：「う、うん…」
+
+.image maittana.jpg
+
+.caption http://samitadeare.blog70.fc2.com/blog-entry-889.html
+
+* cgoを使わなければね！
+
+- 外部ライブラリと結合する必要のある場合は当然システム依存
+- When it does, *IT* *WILL* *SILENTLY* *FAIL*
+
+* じゃあGoの同梱ライブラリだけを使ってれば大丈夫だよね？
+
+- 俺：「う、うん…」
+
+.image maittana.jpg
+
+.caption http://samitadeare.blog70.fc2.com/blog-entry-889.html
+
+* os/user はcgo使ってるよ！
+
+- err != nil 確認してるのにッ！返ってきた構造体の内容が空なんて…！
+
+.image cgo-silent-fail.png 500 _
+
+* Lessons Learned:
+
+- えー… Goも完璧じゃないです
+- この手の問題はマジではまるので、素直に回りの人やTwitterで聞きましょう
+
+* Questions?
+
