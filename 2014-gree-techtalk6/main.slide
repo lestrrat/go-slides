@@ -95,6 +95,8 @@ TBD
 
 - わかってるつもりでしたり顔のブログ書いててもやっぱりはまる(*blush*)
 
+.image shitarigao.png 500 _
+
 * Status Message
 
 - peco上に何が起きてるのかステータスを表示する
@@ -186,8 +188,8 @@ TBD
 * One More Thing
 
 - 今回のケースはグローバル関数だったのでこう書いた
-- が、 *interfaceは後付けできる* のがポイント…
-- 多分最初からMockとか考えて書くとGoっぽくないし、over engineering
+- 多分最初からMockとか考えてinterfaceガンガン作って書くとGoっぽくないし、多分over engineering
+- Goはわりと「後からどうにでもできる言語」だと思う
 
 * Oops
 
@@ -197,20 +199,24 @@ TBD
    ok  	github.com/peco/peco	0.419s
    shoebill% 
 
-* Lesson 3: Go Is Not Perl/Ruby/Python/Node
+- ははは… 次行こう。
+
+* Lesson 3: Working With Libraries
 
 * Perl時代の私
 
-- 「コア機能以外は全部外部の汎用ライブラリに追い出さないと死ぬ！」
+- 「コア機能以外は全部外部の *汎用ライブラリ* に追い出さないと死ぬ！」
 - 「全部cpanfileにキレイに書いて、どこの環境でもうまいこと動くようにしないと死ぬ！」
 
 * Go時代の私
 
-- 「どうせコンパイル通すからだいたいわかるようになってればいいよ…」
+- Go Is Not Perl/Ruby/Python/Node/etc
+- 「どうせコンパイル通すからそんなにライブラリライブラリ言わないでも大丈夫だよ…」
 
-* キーシーケンスの処理
+* 例：キーシーケンスの処理
 
-- 色々やってみたけど、FSMを使って登録されたシーケンスと入力シーケンスをマッチさせる必要があった
+- Key sequence 処理はFSM的なものを使って登録されたシーケンスと入力シーケンスをマッチさせる必要があった
+- @lestrrat on twitter:「あー、なんかFSM必要なきがしてきたなー」
 
 * Twitterでつぶやいたらすぐ
 
@@ -220,10 +226,16 @@ TBD
 
 * 提供されたライブラリ
 
-- stringをキーとして、Aho-Corasick法を使ってパターン認識する
-- う、でもこっちのキーはtermbox.Key{}だ…
+.image koron-my-savior.png 400 _
 
-* I'm shipping a binary
+- stringをキーとして、Aho-Corasick法を使ってパターン認識する
+
+* あんまり汎用じゃなかった
+
+- stringキーしか受け付けないのか…！
+- こっちのキーはtermbox.Key{}だ…
+
+* No problem: I'm shipping a binary
 
 - 前提：pecoは単体のツールであり、ライブラリではない
 - どうもPerl/Python/Ruby等をやっていると、汎用ライブラリが欲しくなる
@@ -231,10 +243,20 @@ TBD
 
 * 伝家の宝刀：CUT AND PASTE
 
-- 別にコードの再利用が駄目という話ではなく、用途等が会えばGoならこういうやりかたもある
+- コードの再利用は良いことですよ！
+- でもreflection使ったり interface{}でがんばるコードはGo的にどうなのか、とは思う
+- さらに、バイナリを作ってるので、ライブラリだけのアップグレードとかありえないし…
+- なので元のライブラリにPRを送る必要性は感じなかった
 
-* 閑話休題：Godep
+* ちなみに: go generate
 
+- go 1.4以降でソースコードジェネレーターが追加されるかも？
+- ライブラリはテンプレートを提供して、必要な型分のコードを生成する
+- 今回のライブラリとやってることは一緒
+
+* On A Related Note: Godep
+
+- 依存関係の管理ツール
 - Godep: -copy=false が廃止された
 - 「プロジェクトごとに依存関係のSHA1だけでなく、本体のコピーを持っていろ」
 
@@ -244,24 +266,26 @@ TBD
 
 * But It Adds _8000_ Lines...
 
+.image kotowaru.gif
+
+.caption https://github.com/peco/peco/pull/195
+
 - や、まぁそういう大きさのプロジェクトなら、ありかも…
 - pecoはまだ5000行。ここに8000行の依存とか追加するのは、いやだったので
 
 * Go As A Scripting Language FTW
 
-.image kotowaru.gif
-
-.caption https://github.com/peco/peco/pull/195
-
-* Lessons Learned:
-
-- キレイに依存関係を解決するのも良いが、ツールを配布する場合はコピーしてカスタマイズしたものを埋め込むという手も現実的
 - 解決しないといけない依存関係についてはpecoは自前でビルドプログラム書いた
 
 .link https://github.com/peco/peco/blob/master/build/make.go
 
    go run make.go deps  // Setup deps
    go run make.go build // Build binaries via goxc
+
+* Lessons Learned:
+
+- キレイに依存関係を解決するのも良いが、ツールを配布する場合はコピーしてカスタマイズしたものを埋め込むという手も現実的
+- 将来的にはコードジェネレータが推奨されるかも？
 
 * Lesson 4: Cross-compilation is hard
 
