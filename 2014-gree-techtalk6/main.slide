@@ -297,5 +297,15 @@ TBD
 - えー… Goも完璧じゃないです
 - この手の問題はマジではまるので、素直に回りの人やTwitterで聞きましょう
 
+* go-homedir
+
+- Yes, we know
+- Just did not like the implementation like this:
+
+.link https://github.com/mitchellh/go-homedir/blob/7d2d8c8a4e078ce3c58736ab521a40b37a504c52/homedir.go#L57
+
+- それにとりあえず動いているコードをわざわざ変えるメリットが見られなかった
+
+
 * Questions?
 
