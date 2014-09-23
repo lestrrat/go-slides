@@ -236,7 +236,7 @@ TBD
 * あんまり汎用じゃなかった
 
 - stringキーしか受け付けないのか…！
-- こっちのキーはtermbox.Key{}だ…
+- こっちのキーは[]termbox.Key{}だ…
 
 * No problem: I'm shipping a binary
 
