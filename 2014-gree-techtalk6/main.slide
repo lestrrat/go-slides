@@ -17,7 +17,8 @@ https://github.com/lestrrat
 
 * WTF Am I Doing Here
 
-- なんかみんなInfluxDBとか大規模デプロイとか運用とかの話聞きに来てません？
+- なんかみんなInfluxDBとか大規模デプロイとか運用とかの重厚な話を聞きに来てません？
+
 - 僕これからたかだか5000行弱のGoで書かれたCLIツールの話しますよ？
 - 寝てもいいけどDISらないでね…
 
