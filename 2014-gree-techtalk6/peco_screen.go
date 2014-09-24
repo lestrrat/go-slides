@@ -20,23 +20,23 @@ type Screen interface {
 type Termbox struct{}
 
 // START TERMBOX OMIT
-func (t Termbox) Clear(fg, bg termbox.Attribute) error {
+func (t Termbox) Clear(fg, bg termbox.Attribute) error { // HL
 	return termbox.Clear(fg, bg)
 }
 
-func (t Termbox) Flush() error {
+func (t Termbox) Flush() error { // HL
 	return termbox.Flush()
 }
 
-func (t Termbox) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) {
+func (t Termbox) SetCell(x, y int, ch rune, fg, bg termbox.Attribute) { // HL
 	termbox.SetCell(x, y, ch, fg, bg)
 }
 
-func (t Termbox) Size() (int, int) {
+func (t Termbox) Size() (int, int) { // HL
 	return termbox.Size()
 }
 
-func (t Termbox) PollEvent() chan termbox.Event {
+func (t Termbox) PollEvent() chan termbox.Event { // HL
 	evCh := make(chan termbox.Event)
 	go func() {
 		defer func() { recover() }()
