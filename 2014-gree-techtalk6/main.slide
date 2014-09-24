@@ -90,10 +90,13 @@ TBD
 
 * Lessons Learned:
 
-
 - 簡単にしてあげると++
 - 簡単にわかるようにしてよう！（README）
 - 簡単に使えるようにしよう！(binaries, homebrew)
+
+* Live Release
+
+- Let's see if I can release 0.2.10, now
 
 * Lesson 1: Synchronization Is Hard
 
