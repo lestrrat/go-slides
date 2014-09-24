@@ -21,8 +21,6 @@ https://github.com/lestrrat
 - 僕これからたかだか5000行弱のGoで書かれたCLIツールの話しますよ？
 - 寝てもいいけどDISらないでね…
 
-* というわけで、さらっとLTっぽく行きます
-
 * Background
 
 - Perl/C guy for last 16 yrs
@@ -36,7 +34,7 @@ Go歴は短いけどがっつりGo書いてます！
 
 * peco?
 
-- 今日は peco開発中にはまったり、考えたりした事をさくっと話します
+- 今日は peco開発中にはまったり、考えたりした *軽いネタ* をさくっと話します
 - " *Interactive* *Command* *Line* *Filtering* *Tool* "
 - ナニソレ？
 
