@@ -19,13 +19,6 @@ https://github.com/lestrrat
 
 .image foo.jpg
 
-* WTF Am I Doing Here
-
-- なんかみんなInfluxDBとか大規模デプロイとか運用とかの重厚な話を聞きに来てません？
-
-- 僕これからたかだか5000行弱のGoで書かれたCLIツールの話しますよ？
-- 寝てもいいけどDISらないでね…
-
 * Background
 
 - Perl/C guy for last 16 yrs
@@ -36,6 +29,13 @@ https://github.com/lestrrat
 .image osrc.png
 
 Go歴は短いけどがっつりGo書いてます！
+
+* WTF Am I Doing Here
+
+- なんかみんなInfluxDBとか大規模デプロイとか運用とかの重厚な話を聞きに来てません？
+
+- 僕これからたかだか5000行弱のGoで書かれたCLIツールの話しますよ？
+- 寝てもいいけどDISらないでね…
 
 * peco?
 
