@@ -188,7 +188,7 @@ TBD
 
    var screen Screen = Termbox{}
 
-- Then, s/termbox/screen/g
+- Then, s/termbox/screen/g (well, not quite)
 
 * Mocking In Test
 
