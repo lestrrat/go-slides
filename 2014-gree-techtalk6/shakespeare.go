@@ -11,7 +11,7 @@ import (
 )
 
 var books = map[string]string{
-	"julius_ceaser": "http://shakespeare.mit.edu/julius_caesar/full.html",
+	"julius_ceasar": "http://shakespeare.mit.edu/julius_caesar/full.html",
 	"romeo_juliet": "http://shakespeare.mit.edu/romeo_juliet/full.html",
 	"macbeth": "http://shakespeare.mit.edu/macbeth/full.html",
 }
