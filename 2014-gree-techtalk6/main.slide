@@ -315,6 +315,8 @@ TBD
    go run make.go deps  // Setup deps
    go run make.go build // Build binaries via goxc
 
+- go getしてる人は go get $url/... してください！
+
 * Lessons Learned:
 
 - キレイに依存関係を解決するのも良いが、ツールを配布する場合はコピーしてカスタマイズしたものを埋め込むという手も現実的
