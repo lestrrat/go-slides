@@ -202,6 +202,8 @@ TBD
 .code peco_layout_test.go /START SETDUMMYSCREEN OMIT/,/END SETDUMMYSCREEN OMIT/
 .code peco_layout_test.go /START USE DUMMYSCREEN OMIT/,/END USE DUMMYSCREEN OMIT/
 
+- もちろん、場合に酔ってはテストの並列実行で壊れるので注意
+
 * Lesson Learned:
 
 - Mockっぽいものはinterfaceで！
